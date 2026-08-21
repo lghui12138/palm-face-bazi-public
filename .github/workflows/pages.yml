@@ -1,0 +1,50 @@
+name: Deploy public static site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out public source
+        uses: actions/checkout@v4
+
+      - name: Assemble deployable public files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf public-dist
+          mkdir -p public-dist/vendor/lunar-javascript
+          cp index.html styles.css app.js bazi-runtime.js case-evidence.js case-storage.js \
+            face-observation-runtime.js face-thirds-runtime.js image-decode.js \
+            palm-semantic-runtime.js source-registry.js traditional-line-texts.js \
+            traditional-rules.js public-dist/
+          cp vendor/lunar-javascript/lunar.js vendor/lunar-javascript/package.json \
+            vendor/lunar-javascript/LICENSE public-dist/vendor/lunar-javascript/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public-dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

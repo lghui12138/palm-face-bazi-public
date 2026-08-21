@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>手相面相八字分析台</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./case-storage.js" defer></script>
+    <script src="./case-evidence.js?v=20260724.1" defer></script>
+    <script src="./palm-semantic-runtime.js?v=20260724.1" defer></script>
+    <script src="./face-observation-runtime.js?v=20260728.1" defer></script>
+    <script src="./face-thirds-runtime.js?v=20260729.1" defer></script>
+    <script src="./source-registry.js?v=20260724.8" defer></script>
+    <script>window.PalmFacePublicStatic = true;</script>
+    <script src="./app.js?v=public-static-20260821.1" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">民俗命理分析台</p>
+          <h1>手相 · 面相 · 八字</h1>
+        </div>
+        <div class="mode-tabs" role="tablist" aria-label="分析类型">
+          <button class="mode-tab active" type="button" data-mode="palm" role="tab" aria-selected="true">手相</button>
+          <button class="mode-tab" type="button" data-mode="face" role="tab" aria-selected="false">面相</button>
+          <button class="mode-tab" type="button" data-mode="bazi" role="tab" aria-selected="false">八字</button>
+        </div>
+      </header>
+
+      <section class="universal-intake" aria-label="通用手相面相识别">
+        <div>
+          <h2>通用识别</h2>
+          <p class="muted">手掌、手背、侧边、指甲、正脸、侧脸和五官局部都可混合上传，系统会先自动分流到手相或面相队列。</p>
+        </div>
+        <label class="file-drop universal-drop" for="universal-upload">
+          <input id="universal-upload" type="file" accept="image/*" multiple>
+          <span class="drop-title">混合上传识别</span>
+          <span class="drop-note">不用先选入口，系统自动判断手相/面相和具体角度</span>
+        </label>
+        <div>
+          <span class="pill" id="universal-status">等待通用图片</span>
+          <div class="case-meta" id="route-calibration-summary">分流学习：暂无纠正样本</div>
+          <button class="secondary-action route-reset-action" type="button" id="reset-route-calibration">重置分流学习</button>
+          <div class="route-list" id="universal-routes">还没有通用识别记录</div>
+        </div>
+      </section>
+
+      <section class="workspace" data-panel="palm">
+        <aside class="input-panel">
+          <div class="panel-head">
+            <h2>掌心识别</h2>
+            <span class="pill" id="palm-status">等待图片</span>
+          </div>
+
+          <label class="file-drop" for="palm-upload">
+            <input id="palm-upload" type="file" accept="image/*" multiple>
+            <span class="drop-title">上传手相照片</span>
+            <span class="drop-note">掌心、手背、侧边、指甲、拇指都可多张上传</span>
+          </label>
+
+          <div class="form-grid">
+            <label>
+              惯用手
+              <select id="dominant-hand">
+                <option value="right" selected>右手为主</option>
+                <option value="balanced">左右均衡偏右</option>
+                <option value="left">左手为主</option>
+              </select>
+            </label>
+            <label>
+              当前照片
+              <select id="palm-side">
+                <option value="right" selected>右手</option>
+                <option value="left">左手</option>
+                <option value="unknown">不确定</option>
+              </select>
+            </label>
+            <label>
+              图片角度
+              <select id="palm-photo-type">
+                <option value="auto" selected>自动判断</option>
+                <option value="palm_front">掌心正面</option>
+                <option value="palm_back">手背</option>
+                <option value="palm_side">小指侧边</option>
+                <option value="nails">指甲近照</option>
+                <option value="thumb">拇指/虎口</option>
+                <option value="mixed">其他手部图</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="camera-row">
+            <button class="secondary-action" type="button" id="start-palm-camera">开启摄像头</button>
+            <button class="secondary-action" type="button" id="capture-palm-camera">拍照识别</button>
+            <button class="secondary-action" type="button" id="clear-palm-samples">清空样本</button>
+            <button class="secondary-action" type="button" id="export-palm-json">导出JSON</button>
+          </div>
+          <video class="camera-preview" id="palm-video" playsinline muted></video>
+
+          <div class="preview-wrap">
+            <canvas id="palm-canvas" width="720" height="960" aria-label="手相图片预览"></canvas>
+            <div class="empty-preview" id="palm-empty">掌心图</div>
+          </div>
+          <div class="overlay-summary" id="palm-overlay-summary">识别叠加层会显示在预览图上</div>
+          <div class="subject-candidate-controls" id="palm-subject-candidates" data-subject-candidates-mode="palm" hidden></div>
+          <div class="geometry-controls" data-geometry-mode="palm">
+            <label><input type="checkbox" data-geometry-toggle="guide" checked> 参考区</label>
+            <label><input type="checkbox" data-geometry-toggle="model" checked> 模型线</label>
+            <label><input type="checkbox" data-geometry-toggle="edit"> 校正</label>
+            <button class="secondary-action" type="button" data-rotate-image="palm" data-rotate-degrees="-90">左转</button>
+            <button class="secondary-action" type="button" data-rotate-image="palm" data-rotate-degrees="90">右转</button>
+            <button class="secondary-action" type="button" data-rotate-image="palm" data-rotate-degrees="180">旋转180</button>
+            <button class="secondary-action" type="button" data-preprocess-image="palm" data-preprocess-action="auto_prepare">一键优化</button>
+            <button class="secondary-action" type="button" data-preprocess-image="palm" data-preprocess-action="fit_subject">主体裁切</button>
+            <button class="secondary-action" type="button" data-preprocess-image="palm" data-preprocess-action="enhance">自动增强</button>
+            <button class="secondary-action" type="button" data-geometry-clear="palm">清除校正</button>
+          </div>
+
+          <div class="metric-row" id="palm-metrics">
+            <span>线纹 --</span>
+            <span>掌色 --</span>
+            <span>纹理 --</span>
+            <span>置信 --</span>
+          </div>
+          <div class="sample-list" id="palm-samples">还没有手相样本</div>
+
+          <fieldset class="feature-bank compact" id="manual-palm-regions">
+            <legend>人工校正可见区域</legend>
+            <label><input type="checkbox" value="main_lines"> 三大主线</label>
+            <label><input type="checkbox" value="career_fate"> 命运线/事业</label>
+            <label><input type="checkbox" value="sun_wealth"> 太阳线/财运纹</label>
+            <label><input type="checkbox" value="helper_line"> 贵人线/辅助纹</label>
+            <label><input type="checkbox" value="marriage"> 婚姻线</label>
+            <label><input type="checkbox" value="thumb"> 拇指意志逻辑</label>
+            <label><input type="checkbox" value="nails"> 指甲气色</label>
+            <label><input type="checkbox" value="back_shape"> 手背骨肉</label>
+          </fieldset>
+
+          <fieldset class="feature-bank" id="palm-features">
+            <legend>可见特征</legend>
+            <label><input type="checkbox" value="thickPalm"> 掌肉厚实</label>
+            <label><input type="checkbox" value="warmPalm"> 掌色偏红润</label>
+            <label><input type="checkbox" value="busyTexture"> 细碎纹偏多</label>
+            <label><input type="checkbox" value="clearMainLines"> 主线较清楚</label>
+            <label><input type="checkbox" value="longHeadLine"> 智慧线长且下斜</label>
+            <label><input type="checkbox" value="steadyLifeLine"> 生命线弧度大</label>
+            <label><input type="checkbox" value="fateLineStage"> 命运线有阶段感</label>
+            <label><input type="checkbox" value="sunLineLight"> 太阳线偏浅</label>
+            <label><input type="checkbox" value="helperLines"> 生命线内侧有辅助纹</label>
+            <label><input type="checkbox" value="moneyFineLines"> 小指下有细财纹</label>
+          </fieldset>
+
+          <fieldset class="annotation-bank" id="palm-line-annotations">
+            <legend>细线标注</legend>
+            <label><span>生命线</span><select data-annotation="life_line"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>智慧线</span><select data-annotation="head_line"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>感情线</span><select data-annotation="heart_line"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>命运线</span><select data-annotation="fate_line"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>太阳线</span><select data-annotation="sun_line"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>财运纹</span><select data-annotation="wealth_lines"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>贵人线</span><select data-annotation="helper_lines"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+            <label><span>婚姻线</span><select data-annotation="marriage_lines"><option value="unknown">未标注</option><option value="clear">清楚</option><option value="deep">深明显</option><option value="light">偏浅</option><option value="broken">断续</option><option value="need_more">待补图</option></select></label>
+          </fieldset>
+
+          <button class="primary-action" type="button" id="make-palm-report">生成手相报告</button>
+        </aside>
+
+        <section class="report-panel">
+          <div class="panel-head">
+            <h2>交叉对照结果</h2>
+            <span class="pill strong">四书规则库</span>
+          </div>
+          <div class="source-strip">
+            <span>瑞德：双手、主线、流年</span>
+            <span>诺愚：手型、指、甲、丘</span>
+            <span>陈泰先：事业财感情健康</span>
+            <span>文化读本：相术背景</span>
+          </div>
+          <article class="report-output" id="palm-report"></article>
+        </section>
+      </section>
+
+      <section class="workspace hidden" data-panel="face">
+        <aside class="input-panel">
+          <div class="panel-head">
+            <h2>面部识别</h2>
+            <span class="pill" id="face-status">等待图片</span>
+          </div>
+
+          <label class="file-drop" for="face-upload">
+            <input id="face-upload" type="file" accept="image/*" multiple>
+            <span class="drop-title">上传面相照片</span>
+            <span class="drop-note">正脸、侧脸、三分之二、五官局部都可多张上传</span>
+          </label>
+
+          <div class="form-grid">
+            <label>
+              图片角度
+              <select id="face-photo-type">
+                <option value="auto" selected>自动判断</option>
+                <option value="face_front">正脸</option>
+                <option value="face_side">侧脸</option>
+                <option value="face_three_quarter">三分之二侧脸</option>
+                <option value="forehead">额头/上庭</option>
+                <option value="eyes">眉眼局部</option>
+                <option value="nose">鼻部局部</option>
+                <option value="mouth_jaw">口下巴局部</option>
+                <option value="mixed">其他面部图</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="camera-row">
+            <button class="secondary-action" type="button" id="start-face-camera">开启摄像头</button>
+            <button class="secondary-action" type="button" id="capture-face-camera">拍照识别</button>
+            <button class="secondary-action" type="button" id="clear-face-samples">清空样本</button>
+            <button class="secondary-action" type="button" id="export-face-json">导出JSON</button>
+          </div>
+          <video class="camera-preview" id="face-video" playsinline muted></video>
+
+          <div class="preview-wrap">
+            <canvas id="face-canvas" width="720" height="900" aria-label="面相图片预览"></canvas>
+            <div class="empty-preview" id="face-empty">正脸图</div>
+          </div>
+          <div class="overlay-summary" id="face-overlay-summary">识别叠加层会显示在预览图上</div>
+          <div class="subject-candidate-controls" id="face-subject-candidates" data-subject-candidates-mode="face" hidden></div>
+          <div class="geometry-controls" data-geometry-mode="face">
+            <label><input type="checkbox" data-geometry-toggle="guide" checked> 参考区</label>
+            <label><input type="checkbox" data-geometry-toggle="model" checked> 模型线</label>
+            <label><input type="checkbox" data-geometry-toggle="edit"> 校正</label>
+            <button class="secondary-action" type="button" data-rotate-image="face" data-rotate-degrees="-90">左转</button>
+            <button class="secondary-action" type="button" data-rotate-image="face" data-rotate-degrees="90">右转</button>
+            <button class="secondary-action" type="button" data-rotate-image="face" data-rotate-degrees="180">旋转180</button>
+            <button class="secondary-action" type="button" data-preprocess-image="face" data-preprocess-action="auto_prepare">一键优化</button>
+            <button class="secondary-action" type="button" data-preprocess-image="face" data-preprocess-action="fit_subject">主体裁切</button>
+            <button class="secondary-action" type="button" data-preprocess-image="face" data-preprocess-action="enhance">自动增强</button>
+            <button class="secondary-action" type="button" data-geometry-clear="face">清除校正</button>
+          </div>
+
+          <div class="metric-row" id="face-metrics">
+            <span>对称 --</span>
+            <span>气色 --</span>
+            <span>清晰 --</span>
+            <span>置信 --</span>
+          </div>
+          <div class="sample-list" id="face-samples">还没有面相样本</div>
+
+          <fieldset class="feature-bank compact" id="manual-face-regions">
+            <legend>人工校正可见区域</legend>
+            <label><input type="checkbox" value="three_parts"> 三庭五官</label>
+            <label><input type="checkbox" value="profile"> 侧面骨相</label>
+            <label><input type="checkbox" value="shape"> 立体轮廓</label>
+            <label><input type="checkbox" value="forehead"> 额头/上庭</label>
+            <label><input type="checkbox" value="brow_eye"> 眉眼神</label>
+            <label><input type="checkbox" value="nose"> 鼻部财帛</label>
+            <label><input type="checkbox" value="mouth_jaw"> 口相/下庭</label>
+          </fieldset>
+
+          <fieldset class="feature-bank" id="face-features">
+            <legend>可见特征</legend>
+            <label><input type="checkbox" value="fullForehead"> 额头开阔</label>
+            <label><input type="checkbox" value="stableBrowEyes"> 眉眼稳定</label>
+            <label><input type="checkbox" value="brightEyes"> 眼神有光</label>
+            <label><input type="checkbox" value="balancedNose"> 鼻部端正有肉</label>
+            <label><input type="checkbox" value="clearMouth"> 口形清楚</label>
+            <label><input type="checkbox" value="firmJaw"> 下巴承托感强</label>
+            <label><input type="checkbox" value="warmComplexion"> 气色偏暖</label>
+            <label><input type="checkbox" value="tiredComplexion"> 疲态偏重</label>
+          </fieldset>
+
+          <fieldset class="annotation-bank" id="face-zone-annotations">
+            <legend>分区标注</legend>
+            <label><span>三庭比例</span><select data-annotation="three_courts"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>脸型轮廓</span><select data-annotation="face_shape"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>额头上庭</span><select data-annotation="forehead_zone"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>眉眼神采</span><select data-annotation="brow_eye_zone"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>鼻部财帛</span><select data-annotation="nose_zone"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>口相下巴</span><select data-annotation="mouth_jaw_zone"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>侧面骨相</span><select data-annotation="profile_zone"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+            <label><span>阶段气色</span><select data-annotation="complexion_zone"><option value="unknown">未标注</option><option value="balanced">均衡</option><option value="clear">清楚</option><option value="weak">偏弱</option><option value="asymmetric">不均</option><option value="need_more">待补图</option></select></label>
+          </fieldset>
+
+          <button class="primary-action" type="button" id="make-face-report">生成面相报告</button>
+        </aside>
+
+        <section class="report-panel">
+          <div class="panel-head">
+            <h2>面相报告</h2>
+            <span class="pill strong">分区对照</span>
+          </div>
+          <div class="source-strip">
+            <span>三庭：早中晚运</span>
+            <span>五官：执行与资源</span>
+            <span>气色：阶段状态</span>
+            <span>形神：综合判断</span>
+          </div>
+          <article class="report-output" id="face-report"></article>
+        </section>
+      </section>
+
+      <section class="workspace hidden" data-panel="bazi">
+        <aside class="input-panel">
+          <div class="panel-head">
+            <h2>八字时间盘</h2>
+            <span class="pill" id="bazi-status">本地推演</span>
+          </div>
+
+          <div class="form-stack">
+            <label>
+              阳历出生时间
+              <input id="birth-datetime" type="datetime-local">
+            </label>
+            <label>
+              出生地
+              <input id="birth-place" type="text" placeholder="可选">
+            </label>
+            <label>
+              性别
+              <select id="birth-gender">
+                <option value="male" selected>男</option>
+                <option value="female">女</option>
+              </select>
+            </label>
+            <label>
+              日柱校验（可选）
+              <input id="day-pillar" type="text" placeholder="可填已知日柱作人工核对，如甲子">
+            </label>
+            <div class="form-grid timeline-range-grid">
+              <label>
+                流年起始
+                <input id="timeline-start-year" type="number" min="1900" max="2200">
+              </label>
+              <label>
+                流年结束
+                <input id="timeline-end-year" type="number" min="1900" max="2200">
+              </label>
+            </div>
+          </div>
+
+          <fieldset class="feature-bank compact" id="bazi-focuses">
+            <legend>分析重点</legend>
+            <label><input type="checkbox" value="career" checked> 事业</label>
+            <label><input type="checkbox" value="wealth" checked> 财运</label>
+            <label><input type="checkbox" value="love" checked> 感情</label>
+            <label><input type="checkbox" value="health" checked> 健康</label>
+            <label><input type="checkbox" value="timeline" checked> 逐年节点</label>
+          </fieldset>
+
+          <button class="primary-action" type="button" id="make-bazi-report">生成八字报告</button>
+          <button class="secondary-action full-width" type="button" id="export-bazi-json">导出JSON</button>
+        </aside>
+
+        <section class="report-panel">
+          <div class="panel-head">
+            <h2>八字报告</h2>
+            <span class="pill strong">精确节气四柱</span>
+          </div>
+          <div class="source-strip">
+            <span>年柱：节气交接</span>
+            <span>月柱：节气交接</span>
+            <span>日时：精确干支</span>
+            <span>起运：顺逆大运</span>
+          </div>
+          <article class="report-output" id="bazi-report"></article>
+        </section>
+      </section>
+
+      <section class="case-library">
+        <div class="panel-head">
+          <div>
+            <h2>本地案例库</h2>
+            <p class="muted">把确认过的手相、面相、八字报告存成样本，后续继续调规则。</p>
+          </div>
+          <div class="case-storage-pills">
+            <span class="pill" id="case-storage-status">存储准备中</span>
+            <span class="pill strong" id="case-count">0 个案例</span>
+          </div>
+        </div>
+        <div class="feedback-grid">
+          <label>
+            <span>本次验证</span>
+            <select id="case-feedback-rating">
+              <option value="unreviewed">待验证</option>
+              <option value="accurate">准确</option>
+              <option value="partial">部分准确</option>
+              <option value="wrong">不准确</option>
+            </select>
+          </label>
+          <label>
+            <span>反馈说明</span>
+            <textarea id="case-feedback-note" rows="3" placeholder="记录修正点"></textarea>
+          </label>
+        </div>
+        <div class="camera-row">
+          <button class="secondary-action" type="button" id="save-palm-case">保存手相案例</button>
+          <button class="secondary-action" type="button" id="save-face-case">保存面相案例</button>
+          <button class="secondary-action" type="button" id="save-bazi-case">保存八字案例</button>
+          <button class="secondary-action" type="button" id="export-case-library">导出案例库</button>
+          <button class="secondary-action" type="button" id="export-geometry-training">导出几何训练集</button>
+          <label class="secondary-action import-action" for="import-geometry-training">
+            导入几何训练集
+            <input id="import-geometry-training" type="file" accept="application/json,.json" multiple>
+          </label>
+          <label class="secondary-action import-action" for="import-case-library">
+            导入案例库
+            <input id="import-case-library" type="file" accept="application/json,.json" multiple>
+          </label>
+        </div>
+        <div class="training-filters" aria-label="案例证据筛选">
+          <label>
+            <span>案例证据</span>
+            <select id="case-evidence-filter">
+              <option value="all">全部案例</option>
+              <option value="traditional">传统语义已复核</option>
+              <option value="observation">仅照片/几何</option>
+            </select>
+          </label>
+          <div class="case-meta" id="case-evidence-count">传统已复核 0 · 仅照片/几何 0</div>
+        </div>
+        <div class="learning-summary" id="learning-summary">暂无反馈样本</div>
+        <div class="geometry-training-panel">
+          <div class="panel-head compact-head">
+            <div>
+              <h3>几何校正训练集</h3>
+              <p class="muted">汇总当前会话和案例库里的关键点/线段人工校正。</p>
+            </div>
+            <span class="pill" id="geometry-training-count">0 条校正</span>
+          </div>
+          <div class="geometry-training-summary" id="geometry-training-summary">暂无几何校正样本</div>
+          <div class="training-workbench" id="geometry-training-workbench">
+            <div class="training-filters" aria-label="几何训练筛选">
+              <label>
+                <span>类型</span>
+                <select id="geometry-training-filter-mode">
+                  <option value="all">全部</option>
+                  <option value="palm">手相</option>
+                  <option value="face">面相</option>
+                </select>
+              </label>
+              <label>
+                <span>来源</span>
+                <select id="geometry-training-filter-source">
+                  <option value="all">全部</option>
+                  <option value="current_session">当前会话</option>
+                  <option value="case_library">案例库</option>
+                  <option value="training_library">本地训练库</option>
+                </select>
+              </label>
+              <label>
+                <span>状态</span>
+                <select id="geometry-training-filter-reviewStatus">
+                  <option value="all">全部</option>
+                  <option value="accepted">已启用</option>
+                  <option value="pending">待审核</option>
+                  <option value="disabled">已禁用</option>
+                </select>
+              </label>
+              <label>
+                <span>目标</span>
+                <select id="geometry-training-filter-targetKind">
+                  <option value="all">全部</option>
+                  <option value="segment">线段</option>
+                  <option value="keypoint">关键点</option>
+                  <option value="polyline">掌褶控制点</option>
+                  <option value="polyline_operation">掌褶拆分/重连</option>
+                  <option value="polyline_semantic">传统掌纹语义</option>
+                  <option value="face_observation">面部观察真值</option>
+                </select>
+              </label>
+            </div>
+            <div class="training-bulk-actions">
+              <span class="case-meta" id="geometry-training-filter-count">筛选 0 条</span>
+              <button class="secondary-action compact-action" type="button" data-training-bulk-status="accepted">批量启用</button>
+              <button class="secondary-action compact-action" type="button" data-training-bulk-status="pending">批量待审核</button>
+              <button class="secondary-action compact-action" type="button" data-training-bulk-status="disabled">批量禁用</button>
+            </div>
+          </div>
+          <div class="geometry-training-list" id="geometry-training-list"></div>
+        </div>
+        <div class="case-list" id="case-list">还没有保存案例</div>
+      </section>
+
+      <section class="case-library">
+        <div class="panel-head">
+          <div>
+            <h2>识别引擎协议</h2>
+            <p class="muted">当前使用本地启发式适配器；后续手纹/面相模型只要返回同样字段即可接入。</p>
+          </div>
+          <span class="pill strong" id="model-status">heuristic-v1</span>
+        </div>
+        <div class="model-grid">
+          <div class="capability-item ready">
+            <strong>输入</strong>
+            <div class="case-meta">图片类型、主体框、质量、线条、对称、皮肤覆盖、用户选择</div>
+          </div>
+          <div class="capability-item ready">
+            <strong>输出</strong>
+            <div class="case-meta">建议角度、置信度、风险、可识别区域、叠加层、模型版本</div>
+          </div>
+          <div class="capability-item partial">
+            <strong>模型接入</strong>
+            <div class="case-meta">JSON导入、端点POST、手部关键点、掌纹线段、面部关键点</div>
+          </div>
+        </div>
+        <div class="model-import-row">
+          <label class="secondary-action import-action" for="import-model-result">
+            导入模型JSON
+            <input id="import-model-result" type="file" accept="application/json,.json" multiple>
+          </label>
+          <span class="pill" id="model-import-status">等待模型结果</span>
+        </div>
+        <div class="model-endpoint-grid">
+          <label>
+            <span>模型端点</span>
+            <input id="model-endpoint-url" type="url" inputmode="url" autocomplete="off" placeholder="/api/recognize">
+          </label>
+          <label>
+            <span>调用模式</span>
+            <select id="model-endpoint-mode">
+              <option value="auto">上传后自动</option>
+              <option value="manual">手动</option>
+              <option value="off">关闭</option>
+            </select>
+          </label>
+        </div>
+        <div class="model-import-row">
+          <button class="secondary-action" type="button" id="call-palm-model">调用手相模型</button>
+          <button class="secondary-action" type="button" id="call-face-model">调用面相模型</button>
+          <span class="pill" id="model-endpoint-status">端点未配置</span>
+          <span class="pill" id="runtime-performance-status">性能待测</span>
+        </div>
+        <p class="muted">当前为公开静态版：不携带私人主档与照片，默认关闭本机识别端点；照片只在浏览器内做可测性和几何观察。</p>
+        <div class="case-meta" id="runtime-performance-detail">等待记录页面初始化与长任务</div>
+        <textarea id="model-debug" class="model-debug" readonly>等待识别样本</textarea>
+      </section>
+    </main>
+  </body>
+</html>
