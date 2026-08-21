@@ -441,30 +441,7 @@
         if (runtime) resolve(runtime);
         else reject(new Error("bazi_runtime_contract_missing"));
       });
-      const loadPersonalAnnualSeventhBatch = () =>
-        load("./personal-bazi-annual-2097.js?v=20260730.3", "personalBaziAnnual2097", loadRuntime);
-      const loadPersonalAnnualSixthBatch = () =>
-        load("./personal-bazi-annual-2087.js?v=20260730.4", "personalBaziAnnual2087", loadPersonalAnnualSeventhBatch);
-      const loadPersonalAnnualFifthBatch = () =>
-        load("./personal-bazi-annual-2077.js?v=20260730.4", "personalBaziAnnual2077", loadPersonalAnnualSixthBatch);
-      const loadPersonalAnnualFourthBatch = () =>
-        load("./personal-bazi-annual-2067.js?v=20260730.3", "personalBaziAnnual2067", loadPersonalAnnualFifthBatch);
-      const loadPersonalAnnualThirdBatch = () =>
-        load("./personal-bazi-annual-2057.js?v=20260730.4", "personalBaziAnnual2057", loadPersonalAnnualFourthBatch);
-      const loadPersonalAnnualContinuation = () =>
-        load("./personal-bazi-annual-2047.js?v=20260730.3", "personalBaziAnnual2047", loadPersonalAnnualThirdBatch);
-      const loadPersonalAnnualAdultTransitionBatch = () =>
-        load("./personal-bazi-annual-2019.js?v=20260730.4", "personalBaziAnnual2019", loadPersonalAnnualContinuation);
-      const loadPersonalAnnualYouthTransitionBatch = () =>
-        load("./personal-bazi-annual-2013.js?v=20260730.2", "personalBaziAnnual2013", loadPersonalAnnualAdultTransitionBatch);
-      const loadPersonalAnnualHistoricalSecondBatch = () =>
-        load("./personal-bazi-annual-2007.js?v=20260730.4", "personalBaziAnnual2007", loadPersonalAnnualYouthTransitionBatch);
-      const loadPersonalAnnualHistoricalFirstBatch = () =>
-        load("./personal-bazi-annual-2001.js?v=20260730.4", "personalBaziAnnual2001", loadPersonalAnnualHistoricalSecondBatch);
-      const loadPersonalAnnual = () => {
-        if (window.PalmFacePersonalBaziAnnual) loadPersonalAnnualHistoricalFirstBatch();
-        else load("./personal-bazi-annual.js?v=20260730.7", "personalBaziAnnual", loadPersonalAnnualHistoricalFirstBatch);
-      };
+      const loadPersonalAnnual = loadRuntime;
       if (window.Solar) loadPersonalAnnual();
       else load("./vendor/lunar-javascript/lunar.js", "baziCalendar", loadPersonalAnnual);
     }).catch((error) => {
@@ -5570,9 +5547,7 @@
   function personalBaziAnalysis(payload) {
     const timeline = Array.isArray(payload.timeline) ? payload.timeline : [];
     const annualDetail = personalAnnualDetailAudit(timeline);
-    const registeredPersonalYears = Array.isArray(window.PalmFacePersonalBaziAnnual?.years)
-      ? window.PalmFacePersonalBaziAnnual.years
-      : [];
+    const registeredPersonalYears = [];
     const personalEssayYears = new Set([
       ...Array.from({ length: 12 }, (_, index) => 2025 + index),
       ...registeredPersonalYears
